@@ -1,5 +1,5 @@
 import math 
-from geopy.distance import vincenty,great_circle
+from geopy.distance import geodesic,great_circle # Removed vincenty for geodesic.
 from shapely.geometry import Polygon, MultiPolygon, Point, mapping
 import pymongo as pym
 import requests
@@ -18,12 +18,12 @@ def myhexagon(center, rx, ry):
     return Polygon(vertices)
 
 def dist2Point(one, two): #one=(lat,lon)
-    return vincenty((one[1],one[0]),(two[1], two[0])).kilometers #dist in meter 
+    return geodesic((one[1],one[0]),(two[1], two[0])).kilometers #dist in meter 
     #return  great_circle(one, two).angle
 def dist4Point(one, two): #one=(point,point)
     one = one['coordinates']
     two = two['coordinates']
-    return vincenty((one[1],one[0]),(two[1], two[0])).kilometers #dist in meter 
+    return geodesic((one[1],one[0]),(two[1], two[0])).kilometers #dist in meter 
 
 cosines = []
 sines = []
@@ -229,7 +229,8 @@ def showHexs(gtfsDB, city, zoom_start = 9):
     for point in gtfsDB['points'].find({'served':True, 'city':city}, {'pointN':0, 'stopN':0}):
         listHex.append(point)
     res = unionHexs(listHex)
-    map_osm.choropleth(res, fill_color='red',fill_opacity=0.6, line_color='null',line_weight=2, line_opacity=0)
+    folium.Choropleth(res, fill_color='red',fill_opacity=0.6, line_color='null',line_weight=2, line_opacity=0).add_to(map_osm)
+    #map_osm.choropleth(res, fill_color='red',fill_opacity=0.6, line_color='null',line_weight=2, line_opacity=0)
     return map_osm
     
 #Utility function for isochrone generation 
@@ -249,7 +250,9 @@ def reduceGeojsonInShell(hexs,field, color = colorIso, shell = shellIso):
             geojson = unionHexs(find)
             geojson['properties'] =  {field: (lim + shell[i+1])/2.}
             FeatureCollection['features'].append(geojson)
-            map_osm.choropleth(geojson, fill_color=color[i],fill_opacity=0.6, line_color=color[i],line_weight=2, line_opacity=0,)
+            folium.Choropleth(geojson, fill_color=color[i],fill_opacity=0.6, line_color=color[i],line_weight=2,
+                              line_opacity=0,).add_to(map_osm)
+            #map_osm.choropleth(geojson, fill_color=color[i],fill_opacity=0.6, line_color=color[i],line_weight=2, line_opacity=0,)
             
     return [FeatureCollection, map_osm]
 
@@ -265,7 +268,9 @@ def reduceGeojsonInShellSubField(hexs,field1,field2, color = colorIso, shell = s
             geojson['properties'] =  {field1+'.'+field2: (lim + shell[i+1])/2.}
             print('shell {0}-{1} -> {2} hexs'.format(shell[i],shell[i+1],len(find)))
             FeatureCollection['features'].append(geojson)
-            map_osm.choropleth(geojson, fill_color=color[i],fill_opacity=0.6, line_color=color[i],line_weight=2, line_opacity=0,)
+            folium.Choropleth(geojson, fill_color=color[i],fill_opacity=0.6, line_color=color[i],line_weight=2,
+                              line_opacity=0,).add_to(map_osm)
+            #map_osm.choropleth(geojson, fill_color=color[i],fill_opacity=0.6, line_color=color[i],line_weight=2, line_opacity=0,)
             
     return [FeatureCollection, map_osm]
 
@@ -409,20 +414,12 @@ import shapely
 import shapely.ops as ops
 from shapely.geometry.polygon import Polygon
 from functools import partial
-
-def area_geojson(geoJ):
+#updated to pyproj2
+def area_geojson(geoJ):    
     if(geoJ['type'] == 'Polygon'):
         geom = Polygon(geoJ['coordinates'][0])
         geom_area = ops.transform(
-            partial(
-                pyproj.transform,
-                pyproj.Proj(init='EPSG:4326'),
-                pyproj.Proj(
-                    proj='aea',
-                    lat1=geom.bounds[1],
-                    lat2=geom.bounds[3])),
-            geom)
-
+            pyproj.Transformer.from_proj("epsg:4326",
+            pyproj.Proj(f'+proj=aea +lat_1={geom.bounds[1]} +lat_2={geom.bounds[3]}')).transform, geom)
     # Print the area in m^2
-    return geom_area.area  / 1.e6
-
+    return geom_area.area  / 1.e6        

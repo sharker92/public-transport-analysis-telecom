@@ -1,11 +1,12 @@
-from numba import jit, int32, float64
+from numba import njit, int32, float64
 import math
 import numpy as np
+from numba.typed import Dict
 
 totNumTime = 4*3600
 
 
-@jit()
+@njit
 def tDistrScore(t):
     t /= 30.
     a = 0.2; #0.12 0.15 0.19
@@ -16,7 +17,7 @@ def tDistrScore(t):
     return N * math.exp(-((a*TBus)/t) - t/(b*TBus))
 normtDistrScore = sum([tDistrScore(t_i) for t_i in range(totNumTime)])
 
-@jit()
+@njit
 def tDistrScoreGall(t):
     t /= 60.
     c = 36.
@@ -24,7 +25,7 @@ def tDistrScoreGall(t):
     return math.exp(c/b) * (1. - math.exp(-t/c)) * math.exp( -t/b - c * math.exp(-t/c) / b ) / b
 normtDistrScoreGall = sum([tDistrScoreGall(t_i) for t_i in range(totNumTime)])
 
-@jit()
+@njit
 def tDistrScore1h(t):
     if(t < 3600):
         return 1./3600.
@@ -33,24 +34,24 @@ def tDistrScore1h(t):
     return 0
 normtDistrScore1h = sum([tDistrScore1h(t_i) for t_i in range(totNumTime)])
 
-@jit()
+@njit
 def normed_tDistrScore(t):
     global normtDistrScore
     return tDistrScore(t) / normtDistrScore
 
-@jit()
+@njit
 def normed_tDistrScoreGall(t):
     global normtDistrScoreGall
     return tDistrScoreGall(t) / normtDistrScoreGall
 
-@jit()
+@njit
 def normed_tDistrScore1h(t):
     global normtDistrScore1h
     return tDistrScore1h(t) / normtDistrScore1h
 
 
 
-@jit()
+@njit
 def areaTimeCompute(timePR):
     aTime = np.full(totNumTime, 0., dtype = np.float64)
     for t in timePR:
@@ -60,7 +61,7 @@ def areaTimeCompute(timePR):
             pass
     return aTime
 
-@jit()
+@njit
 def arrayTimeCompute(timePR, arrayW):
     aTime = np.full(totNumTime, 0., dtype = np.float64)
     for i, t in enumerate(timePR):
@@ -72,7 +73,7 @@ def arrayTimeCompute(timePR, arrayW):
 
 
 def computeVelocityScore(distr):
-    @jit()
+#    @njit deprecated
     def computeVel(timePReached, data):
         areaHex = data['areaHex']
         area_new = 0
@@ -91,7 +92,7 @@ def computeVelocityScore(distr):
 
 
 def computeSocialityScore(distr):
-    @jit()
+#    @njit deprecated
     def computeSoc(timePReached, data):
         arrayW = data['arrayPop']
         popComul = 0
@@ -103,7 +104,7 @@ def computeSocialityScore(distr):
         return popMean
     return computeSoc
 
-@jit()
+#@njit deprecated
 def timeVelocity(timePReached, data):
     timeListToSave = data["timeListToSave"]
     areaHex = data['areaHex']
@@ -114,7 +115,7 @@ def timeVelocity(timePReached, data):
         res["velocity"].append((3600./time2Save)*(math.sqrt(area/math.pi)))
     return res
 
-@jit()
+#@njit deprecated
 def timeSociality(timePReached, data):
     timeListToSave = data["timeListToSave"]
     arrayW = data['arrayPop']
