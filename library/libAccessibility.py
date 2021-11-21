@@ -1,7 +1,6 @@
-from numba import njit, int32, float64
+from numba import jit, njit, int32, float64
 import math
 import numpy as np
-from numba.typed import Dict
 
 totNumTime = 4*3600
 
@@ -73,7 +72,7 @@ def arrayTimeCompute(timePR, arrayW):
 
 
 def computeVelocityScore(distr):
-#    @njit deprecated
+    @jit
     def computeVel(timePReached, data):
         areaHex = data['areaHex']
         area_new = 0
@@ -92,7 +91,7 @@ def computeVelocityScore(distr):
 
 
 def computeSocialityScore(distr):
-#    @njit deprecated
+    @jit
     def computeSoc(timePReached, data):
         arrayW = data['arrayPop']
         popComul = 0
@@ -104,7 +103,7 @@ def computeSocialityScore(distr):
         return popMean
     return computeSoc
 
-#@njit deprecated
+@jit
 def timeVelocity(timePReached, data):
     timeListToSave = data["timeListToSave"]
     areaHex = data['areaHex']
@@ -115,7 +114,7 @@ def timeVelocity(timePReached, data):
         res["velocity"].append((3600./time2Save)*(math.sqrt(area/math.pi)))
     return res
 
-#@njit deprecated
+@jit
 def timeSociality(timePReached, data):
     timeListToSave = data["timeListToSave"]
     arrayW = data['arrayPop']
